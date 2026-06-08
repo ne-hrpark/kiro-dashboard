@@ -3,7 +3,9 @@ export const dynamic = 'force-dynamic';
 import OverviewClient from '@/app/components/OverviewClient';
 import { OverviewMetrics, DailyTrend, TopUser, EngagementData, ClientDistribution } from '@/types/dashboard';
 
-const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+const baseUrl =
+  process.env.NEXTAUTH_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
 async function fetchData<T>(path: string): Promise<T | null> {
   try {
