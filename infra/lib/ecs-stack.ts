@@ -46,7 +46,7 @@ export class EcsStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    const athenaResultsBucket = 'whchoi01-titan-q-log';
+    const athenaResultsBucket = 'prd-ne-bedrock-log-use1';
     const athenaResultsPrefix = 'athena-results';
 
     const taskRole = new iam.Role(this, 'TaskRole', {
@@ -120,6 +120,13 @@ export class EcsStack extends cdk.Stack {
                 'arn:aws:bedrock:*:*:inference-profile/*',
               ],
             }),
+            new iam.PolicyStatement({
+              actions: ['bedrock:GetInferenceProfile'],
+              resources: [
+                'arn:aws:bedrock:*:*:inference-profile/*',
+                'arn:aws:bedrock:*:*:application-inference-profile/*',
+              ],
+            }),
           ],
         }),
       },
@@ -145,15 +152,20 @@ export class EcsStack extends cdk.Stack {
 
     taskDef.addContainer('AppContainer', {
       image: ecs.ContainerImage.fromEcrRepository(repository, 'latest'),
-      portMappings: [{ containerPort: 3000 }],
+      portMappings: [{ containerPort: 3009 }],
       environment: {
         HOSTNAME: '0.0.0.0',
         AWS_REGION: 'us-east-1',
         ATHENA_DATABASE: 'titanlog',
-        ATHENA_OUTPUT_BUCKET: 's3://whchoi01-titan-q-log/athena-results/',
+        ATHENA_OUTPUT_BUCKET: 's3://prd-ne-bedrock-log-use1/athena-results/',
         GLUE_TABLE_NAME: 'user_report',
         IDENTITY_STORE_ID: 'd-90663be888',
+        IDENTITY_STORE_REGION: 'ap-northeast-2',
         S3_REPORT_PREFIX: 'q-user-log/AWSLogs/120443221648/KiroLogs/user_report/us-east-1/',
+        // Bedrock 분석용 Athena (운영 계정에 실제 존재하는 DB/버킷으로 교체 필요)
+        BEDROCK_AWS_REGION: 'us-east-1',
+        BEDROCK_ATHENA_DATABASE: 'bedrock_analytics',
+        BEDROCK_ATHENA_OUTPUT_BUCKET: 's3://prd-ne-bedrock-log-use1/bedrock-results/',
         NEXTAUTH_URL: '',
       },
       secrets: {
@@ -164,7 +176,7 @@ export class EcsStack extends cdk.Stack {
         logGroup,
       }),
       healthCheck: {
-        command: ['CMD-SHELL', 'node -e "const http=require(\'http\');const r=http.get(\'http://localhost:3000/api/health\',res=>{process.exit(res.statusCode===200?0:1)});r.on(\'error\',()=>process.exit(1))"'],
+        command: ['CMD-SHELL', 'node -e "const http=require(\'http\');const r=http.get(\'http://localhost:3009/api/health\',res=>{process.exit(res.statusCode===200?0:1)});r.on(\'error\',()=>process.exit(1))"'],
         interval: cdk.Duration.seconds(30),
         timeout: cdk.Duration.seconds(5),
         retries: 3,
@@ -190,7 +202,7 @@ export class EcsStack extends cdk.Stack {
 
     const targetGroup = new elbv2.ApplicationTargetGroup(this, 'TargetGroup', {
       vpc: props.vpc,
-      port: 3000,
+      port: 3009,
       protocol: elbv2.ApplicationProtocol.HTTP,
       targetType: elbv2.TargetType.IP,
       healthCheck: {

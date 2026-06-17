@@ -2,8 +2,9 @@ import { IdentitystoreClient, ListUsersCommand } from '@aws-sdk/client-identitys
 import { maskText, maskEmail } from './mask';
 import { getOrgProvider } from './org/provider';
 
+// IAM Identity Center는 ap-northeast-2에 존재 — AWS_REGION(us-east-1)과 분리.
 const client = new IdentitystoreClient({
-  region: process.env.AWS_REGION ?? 'us-east-1',
+  region: process.env.IDENTITY_STORE_REGION ?? 'ap-northeast-2',
 });
 
 function applyEmployeeOverlay(
